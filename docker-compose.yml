@@ -1,0 +1,43 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: fleetcore
+    volumes:
+      - pgdata:/var/lib/postgresql/data   # persistencia
+    networks:
+      - fleetcore-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d fleetcore"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      PORT: 3000
+      DB_HOST: db            # nombre del servicio en la red interna
+      DB_PORT: 5432
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      DB_NAME: fleetcore
+      DB_SYNCHRONIZE: "true"
+      JWT_SECRET: cambia-este-secreto
+      JWT_EXPIRES_IN: 1h
+      API_KEYS: demo-key-partner-1,demo-key-partner-2
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - fleetcore-net
+
+networks:
+  fleetcore-net:
+
+volumes:
+  pgdata:
